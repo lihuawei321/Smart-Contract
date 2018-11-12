@@ -1,0 +1,35 @@
+pragma solidity ^0.4.18;
+
+    contract Owned {
+        address public owner;
+
+        function owned() public {
+            //constructor () public{
+            owner = msg.sender;
+        }
+    }
+    
+pragma solidity ^0.4.18;
+
+contract Bank is Owned{
+    
+    mapping(address => uint) balances;
+    function balanceOf(address _user) constant public returns(uint){
+        return balances[_user];
+    }
+    
+    function deposit() payable public{
+        balances[msg.sender] +=msg.value;
+    }
+    
+    function withdraw(uint256 _amout) public {
+        require(balances[msg.sender] > _amout);
+        msg.sender.transfer(_amout);
+        balances[msg.sender] -= _amout;
+    }
+    
+    function destroy() public {
+        require(msg.sender == owner);
+        selfdestruct(owner);
+    }
+}
